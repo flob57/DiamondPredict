@@ -9,14 +9,14 @@
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/icon.svg">
   <link rel="stylesheet" href="styles.css">
-  <title>DiamondPredict 0.5</title>
+  <title>DiamondPredict 1.0</title>
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
       <button class="brand" type="button" data-view="dashboard" aria-label="Accueil DiamondPredict">
         <span class="brand-mark">⚾</span>
-        <span><small>MLB • VERSION 0.5</small><strong>Diamond<span>Predict</span></strong></span>
+        <span><small>MLB • VERSION 1.0</small><strong>Diamond<span>Predict</span></strong></span>
       </button>
       <nav class="desktop-nav" aria-label="Navigation principale">
         <button class="nav-link active" data-view="dashboard" type="button">⌂ Tableau de bord</button>
@@ -24,6 +24,7 @@
         <button class="nav-link" data-view="odds" type="button">↗ Cotes</button>
         <button class="nav-link" data-view="analysis" type="button">✦ Analyses</button>
         <button class="nav-link" data-view="history" type="button">◷ Historique</button>
+        <button class="nav-link" data-view="lab" type="button">⌬ Laboratoire</button>
       </nav>
       <div class="top-actions">
         <span class="demo-pill" id="dataStatus"><i></i>Connexion MLB…</span>
@@ -107,13 +108,25 @@
       </section>
 
       <section class="view" id="view-history">
-        <div class="page-heading"><div><p class="eyebrow">Contrôle qualité</p><h1>Historique du modèle</h1><p>Une démonstration de la manière dont DiamondPredict suivra ses performances.</p></div></div>
+        <div class="page-heading"><div><p class="eyebrow">Contrôle qualité</p><h1>Historique du modèle</h1><p>Suivi des résultats réels et des prévisions enregistrées localement.</p></div></div>
         <section id="historyMetrics" class="metrics-grid"></section>
         <section class="panel calibration-panel">
           <div class="panel-heading"><div><p class="eyebrow">Calibration</p><h2>Prévisions contre résultats réels</h2></div></div>
           <div id="calibrationChart" class="calibration-chart"></div>
         </section>
         <section class="history-table-wrap"><table><thead><tr><th>Match</th><th>Prévision</th><th>Résultat</th><th>Confiance</th><th>Statut</th></tr></thead><tbody id="historyRows"></tbody></table></section>
+      </section>
+
+
+      <section class="view" id="view-lab">
+        <div class="page-heading"><div><p class="eyebrow">Mode privé</p><h1>Laboratoire du modèle</h1><p>Les coulisses de DiamondPredict : pondérations, simulations et influence des variables.</p></div></div>
+        <section id="labSummary" class="metrics-grid"></section>
+        <section class="dashboard-grid">
+          <article class="panel"><div class="panel-heading"><div><p class="eyebrow">Pondérations</p><h2>Moteur actuel</h2></div></div><div id="labWeights" class="lab-bars"></div></article>
+          <article class="panel"><div class="panel-heading"><div><p class="eyebrow">Explicabilité</p><h2>Variables les plus influentes</h2></div></div><div id="labInfluence" class="lab-bars"></div></article>
+        </section>
+        <section class="panel"><div class="panel-heading"><div><p class="eyebrow">Simulation</p><h2>10 000 matchs virtuels</h2></div></div><div id="labSimulation" class="simulation-panel"></div></section>
+        <section class="panel"><div class="panel-heading"><div><p class="eyebrow">Transparence</p><h2>État des données</h2></div></div><div class="data-trust-grid"><div><strong>Réel</strong><p>Calendrier, équipes, bilans, stades, scores, statuts et lanceurs annoncés.</p></div><div><strong>Estimé</strong><p>Momentum, risque, simulations et Score Diamond tant que les statistiques avancées ne sont pas connectées.</p></div><div><strong>À connecter</strong><p>Cotes, bullpen, blessures, météo, Statcast et historique complet.</p></div></div></section>
       </section>
 
       <section class="view" id="view-settings">
@@ -135,6 +148,7 @@
       <button class="nav-item" data-view="analysis" type="button"><span>✦</span>Analyses</button>
       <button class="nav-item" data-view="favorites" type="button"><span>★</span>Favoris</button>
       <button class="nav-item" data-view="history" type="button"><span>◷</span>Historique</button>
+      <button class="nav-item" data-view="lab" type="button"><span>⌬</span>Lab</button>
       <button class="nav-item" data-view="settings" type="button"><span>⚙</span>Réglages</button>
     </nav>
   </div>

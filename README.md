@@ -1,32 +1,34 @@
-# DiamondPredict 0.5 — calendrier MLB réel
+# DiamondPredict V1.0 — Laboratoire
 
-Cette version connecte l'application au flux MLB pour afficher :
+Application personnelle d'analyse MLB pour Cloudflare Pages.
 
-- le véritable calendrier MLB sur 7 jours ;
-- les horaires convertis en heure française ;
-- les stades ;
-- les bilans des équipes ;
-- les lanceurs probables annoncés ;
-- le statut des rencontres ;
-- les scores en direct et les résultats finaux.
+## Données réellement connectées
+- calendrier MLB sur 7 jours ;
+- horaires en heure française ;
+- équipes et bilans ;
+- stades ;
+- lanceurs probables annoncés ;
+- statuts, scores en direct et résultats.
 
-## Déploiement Cloudflare Pages
-
-1. Remplace les anciens fichiers de ton dépôt GitHub par tout le contenu de ce dossier.
-2. Vérifie que le dossier `functions/api/mlb.js` est bien présent dans GitHub.
-3. Redéploie le projet Cloudflare Pages.
-4. Aucune clé API n'est nécessaire pour cette étape.
-
-La fonction Cloudflare `/api/mlb` sert de relais entre l'interface et le flux MLB. Elle met les réponses en cache pendant 60 secondes.
+## Nouveautés V1.0
+- Score Diamond sur 100 ;
+- indice de risque ;
+- simulation pédagogique de 10 000 matchs ;
+- IA Coach explicative ;
+- momentum estimé ;
+- Value Index ;
+- évolution du pronostic ;
+- historique local des prévisions ;
+- mode Laboratoire avec pondérations et influence des variables.
 
 ## Important
+Les éléments avancés (Score Diamond, risque, momentum, Value Index et simulation) restent des **estimations** tant que les cotes, statistiques détaillées des lanceurs, bullpen, blessures, météo et Statcast ne sont pas connectés. L'interface distingue volontairement les données réelles des données estimées.
 
-Les probabilités de la V0.5 sont encore **préliminaires**. Elles utilisent uniquement le bilan réel des équipes et un léger avantage domicile. Les cotes bookmakers, la forme récente, les statistiques complètes des lanceurs et le véritable moteur prédictif seront connectés ensuite.
+## Déploiement
+1. Décompresser l'archive.
+2. Remplacer le contenu du dépôt GitHub par le contenu du dossier `diamondpredict-v1.0`.
+3. Conserver le dossier `functions/api/mlb.js`.
+4. Redéployer Cloudflare Pages.
+5. Vérifier `https://ton-site.pages.dev/api/mlb`.
 
-## Test
-
-Après le déploiement, ouvre :
-
-`https://TON-SITE.pages.dev/api/mlb`
-
-Tu dois obtenir du JSON contenant `source`, `dates` et `totalGames`.
+Aucune clé API n'est nécessaire pour le calendrier MLB actuel.

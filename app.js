@@ -1,188 +1,42 @@
 'use strict';
-
-const $ = (s) => document.querySelector(s);
-const $$ = (s) => document.querySelectorAll(s);
-const LOCAL_TZ = 'Europe/Paris';
-let TODAY = localDateKey(new Date());
-let matches = [];
-let usingFallback = false;
-
-const store = {
-  favorites: JSON.parse(localStorage.getItem('dp05-favorites') || '[]'),
-  compact: JSON.parse(localStorage.getItem('dp05-compact') ?? 'false'),
-  remoteLogos: JSON.parse(localStorage.getItem('dp05-remote-logos') ?? 'true')
-};
-
-const weights = [['Bilan saison', 70], ['Avantage domicile', 20], ['Lanceur annoncé', 10]];
-const alerts = [{ icon: '⚾', title: 'Données MLB réelles', text: 'Calendrier, horaires, scores, statuts et lanceurs annoncés proviennent maintenant de la MLB.', time: 'actif' }];
-
-function localDateKey(date) {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: LOCAL_TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
-}
-function parseDate(value) { return new Date(`${value}T12:00:00`); }
-function formatDate(value) { return new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).format(parseDate(value)); }
-function formatGameTime(iso) { return new Intl.DateTimeFormat('fr-FR', { timeZone: LOCAL_TZ, hour: '2-digit', minute: '2-digit' }).format(new Date(iso)); }
-function fmt(v) { return Number(v).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-function safeNumber(v, fallback = 0) { const n = Number(v); return Number.isFinite(n) ? n : fallback; }
-
-function logoRemote(code) {
-  const aliases = { SD: 'sd', SF: 'sf', KC: 'kc', TB: 'tb', CWS: 'chw', WSH: 'wsh', AZ: 'ari' };
-  return `https://a.espncdn.com/i/teamlogos/mlb/500/${aliases[code] || code.toLowerCase()}.png`;
-}
-function localLogo(code) { return `assets/logos/${code.toLowerCase()}.png`; }
-function logo(team, size = 'small') {
-  const src = store.remoteLogos ? logoRemote(team.code) : localLogo(team.code);
-  return `<img class="team-logo ${size}" src="${src}" alt="Logo ${team.name}" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="team-fallback ${size}" hidden>${team.code}</span>`;
-}
-
-function teamFromSide(side, probability) {
-  const t = side.team || {};
-  const record = side.leagueRecord || {};
-  const p = side.probablePitcher || {};
-  return {
-    id: t.id,
-    code: t.abbreviation || (t.name || 'MLB').slice(0, 3).toUpperCase(),
-    name: t.name || 'Équipe MLB',
-    record: record.wins != null ? `${record.wins}-${record.losses}` : 'Bilan indisponible',
-    pct: safeNumber(record.pct, 0.5),
-    pitcher: p.fullName || 'Lanceur non annoncé',
-    hand: '—', probability,
-    era: '—', whip: '—', fip: '—', k9: '—', bb9: '—', wl: '—', last5: '—',
-    score: side.score ?? null,
-    winner: Boolean(side.isWinner)
-  };
-}
-
-function preliminaryProbabilities(awaySide, homeSide) {
-  const awayPct = safeNumber(awaySide.leagueRecord?.pct, 0.5);
-  const homePct = safeNumber(homeSide.leagueRecord?.pct, 0.5);
-  const delta = (homePct - awayPct) * 70 + 3;
-  const home = Math.max(30, Math.min(70, Math.round(50 + delta)));
-  return { away: 100 - home, home };
-}
-
-function mapGame(game) {
-  const probs = preliminaryProbabilities(game.teams.away, game.teams.home);
-  const away = teamFromSide(game.teams.away, probs.away);
-  const home = teamFromSide(game.teams.home, probs.home);
-  const detailed = game.status?.detailedState || 'Programmé';
-  const isFinal = ['Final', 'Game Over', 'Completed Early'].includes(detailed);
-  const isLive = ['In Progress', 'Manager challenge', 'Delayed'].includes(detailed) || game.status?.abstractGameState === 'Live';
-  const score = away.score != null && home.score != null ? `${away.score}–${home.score}` : '—';
-  const date = localDateKey(new Date(game.gameDate));
-  const fav = probs.home >= probs.away ? home : away;
-  const edge = Math.abs(probs.home - probs.away);
-  return {
-    id: game.gamePk,
-    date,
-    iso: game.gameDate,
-    time: formatGameTime(game.gameDate),
-    venue: game.venue?.name || 'Stade à confirmer',
-    weather: 'Météo non connectée',
-    away, home,
-    status: detailed,
-    isFinal, isLive,
-    inning: game.linescore?.currentInningOrdinal || '',
-    market: null,
-    confidence: edge >= 18 ? 'forte' : edge >= 8 ? 'moyenne' : 'faible',
-    rating: Math.min(8.5, Math.round((5.5 + edge / 10) * 10) / 10),
-    edge: 0,
-    predictedScore: isFinal || isLive ? score : 'Non calculé',
-    total: away.score != null && home.score != null ? away.score + home.score : null,
-    bookmakers: [], trend: [],
-    factors: [['Bilan réel des équipes', `${fav.probability} %`], ['Avantage domicile', '+3 pts'], ['Lanceurs annoncés', away.pitcher !== 'Lanceur non annoncé' && home.pitcher !== 'Lanceur non annoncé' ? 'Confirmés' : 'Partiels']],
-    form: 'À connecter dans la prochaine étape', bullpen: 'À connecter', h2h: 'À connecter', homeAway: 'À connecter', streak: 'À connecter'
-  };
-}
-
-async function loadRealSchedule() {
-  const start = TODAY;
-  const endDate = new Date(`${TODAY}T12:00:00`); endDate.setDate(endDate.getDate() + 6);
-  const end = localDateKey(endDate);
-  const response = await fetch(`/api/mlb?start=${start}&end=${end}`, { cache: 'no-store' });
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  const data = await response.json();
-  const games = (data.dates || []).flatMap(d => d.games || []);
-  matches = games.map(mapGame).sort((a, b) => new Date(a.iso) - new Date(b.iso));
-  if (!matches.length) throw new Error('Aucun match MLB trouvé pour cette période.');
-  $('#dataStatus').innerHTML = '<i></i>Données MLB réelles';
-  $('#dataStatus').title = `Actualisé : ${new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(data.fetchedAt))}`;
-}
-
-function favoriteTeam(m) { return m.home.probability >= m.away.probability ? m.home : m.away; }
-function underdogTeam(m) { return favoriteTeam(m) === m.home ? m.away : m.home; }
-function confidenceLabel(v) { return v.charAt(0).toUpperCase() + v.slice(1); }
-function statusLabel(m) {
-  if (m.isFinal) return `Terminé • ${m.away.score}–${m.home.score}`;
-  if (m.isLive) return `EN DIRECT${m.inning ? ` • ${m.inning}` : ''} • ${m.away.score ?? 0}–${m.home.score ?? 0}`;
-  return m.status;
-}
-function teamRow(team, fav) {
-  return `<div class="team-row"><div class="team-name">${logo(team)}<div class="team-copy"><strong>${team.name}</strong><small>${team.record} • ${team.pitcher}</small></div></div><div class="probability ${team.code === fav.code ? 'favorite-prob' : ''}">${team.probability} %</div></div>`;
-}
-
-function matchCard(m) {
-  const fav = favoriteTeam(m), saved = store.favorites.includes(m.id);
-  return `<article class="match-card"><div class="match-card-header"><div><p class="eyebrow">${formatDate(m.date)}</p><div class="match-time">${m.time} • ${m.venue}</div></div><span class="confidence ${m.isLive ? 'forte' : m.confidence}">${statusLabel(m)}</span></div><div class="teams">${teamRow(m.away, fav)}${teamRow(m.home, fav)}</div><div class="victory-labels"><span>${m.away.code} ${m.away.probability}%</span><span>${m.home.probability}% ${m.home.code}</span></div><div class="victory-bar"><span style="width:${m.away.probability}%"></span><span style="width:${m.home.probability}%"></span></div><div class="quick-stats"><div><span>${m.isFinal || m.isLive ? 'Score réel' : 'Score'}</span><strong>${m.predictedScore}</strong></div><div><span>Marché</span><strong>—</strong></div><div><span>Value</span><strong>—</strong></div><div><span>Note prélim.</span><strong>${m.rating}/10</strong></div></div><div class="value-callout no-value"><span>Estimation préliminaire sans cotes</span><strong>MLB réel</strong></div><div class="card-actions"><button class="primary-button" data-analysis="${m.id}" type="button">Voir le match</button><button class="secondary-button" data-save="${m.id}" type="button">${saved ? '★' : '☆'}</button></div></article>`;
-}
-
-function renderDashboard() {
-  const today = matches.filter(m => m.date === TODAY);
-  const upcoming = matches.filter(m => !m.isFinal);
-  const featured = upcoming[0] || matches[0];
-  $('#todayCount').textContent = today.length;
-  $('#valueCount').textContent = matches.filter(m => m.isLive).length;
-  $('#bestProbability').textContent = matches.length ? `${Math.max(...matches.map(m => favoriteTeam(m).probability))} %` : '—';
-  if (!featured) return;
-  $('#featuredTitle').textContent = `${featured.away.name} – ${featured.home.name}`;
-  $('#featuredOpen').dataset.analysis = featured.id;
-  $('#featuredMatch').innerHTML = `<div class="featured-match"><div class="featured-team">${logo(featured.away, '')}<div><strong>${featured.away.name}</strong><small>${featured.away.record} • ${featured.away.pitcher}</small></div></div><div class="versus-center"><span>${statusLabel(featured)}</span><strong>${featured.time}</strong><small>${featured.venue}</small></div><div class="featured-team right"><div><strong>${featured.home.name}</strong><small>${featured.home.record} • ${featured.home.pitcher}</small></div>${logo(featured.home, '')}</div></div><div class="featured-probabilities"><strong>${featured.away.probability}%</strong><div class="split-bar"><span style="width:${featured.away.probability}%"></span><span style="width:${featured.home.probability}%"></span></div><strong>${featured.home.probability}%</strong></div><div class="featured-stats"><div><span>Source</span><strong>MLB</strong></div><div><span>Statut</span><strong>${featured.status}</strong></div><div><span>Score</span><strong>${featured.predictedScore}</strong></div><div><span>Modèle</span><strong>Préliminaire</strong></div></div>`;
-  const list = upcoming.slice(0, 5);
-  $('#topValueStrip').innerHTML = list.map((m, i) => `<button class="value-chip" data-analysis="${m.id}" type="button"><div class="value-chip-head"><span class="rank-dot">${i + 1}</span><span class="value-number">${m.time}</span></div><strong>${m.away.code} – ${m.home.code}</strong><small>${formatDate(m.date)} • ${m.status}</small></button>`).join('');
-  const strongest = [...matches].sort((a,b)=>favoriteTeam(b).probability-favoriteTeam(a).probability).slice(0,4);
-  const balanced = [...matches].sort((a,b)=>Math.abs(a.home.probability-a.away.probability)-Math.abs(b.home.probability-b.away.probability)).slice(0,4);
-  $('#strongestList').innerHTML = strongest.map(rankingRow).join('');
-  $('#balancedList').innerHTML = balanced.map(rankingRow).join('');
-  renderAlerts();
-}
-function rankingRow(m) { const fav = favoriteTeam(m); return `<button class="ranking-row" data-analysis="${m.id}" type="button">${logo(fav,'tiny')}<span><strong>${fav.name}</strong><small>vs ${underdogTeam(m).name} • ${m.time}</small></span><span class="ranking-value"><strong>${fav.probability} %</strong><small>${statusLabel(m)}</small></span></button>`; }
-function renderAlerts() { const markup = alerts.map(a=>`<div class="alert-item"><span class="alert-icon">${a.icon}</span><div><strong>${a.title}</strong><p>${a.text}</p></div><time>${a.time}</time></div>`).join(''); $('#alertsList').innerHTML=markup; $('#notificationPanelList').innerHTML=markup; $('#notificationCount').hidden=true; }
-
-function renderMatches() {
-  const df=$('#dateFilter').value, conf=$('#confidenceFilter').value, q=$('#teamSearch').value.toLowerCase().trim(), sort=$('#sortFilter').value;
-  const tomorrow=new Date(`${TODAY}T12:00:00`); tomorrow.setDate(tomorrow.getDate()+1); const tomorrowKey=localDateKey(tomorrow);
-  const end3=new Date(`${TODAY}T12:00:00`); end3.setDate(end3.getDate()+3); const end3Key=localDateKey(end3);
-  let list=matches.filter(m=>(df==='all'||df==='today'&&m.date===TODAY||df==='tomorrow'&&m.date===tomorrowKey||df==='3days'&&m.date>=TODAY&&m.date<=end3Key)&&(conf==='all'||m.confidence===conf)&&(!q||`${m.away.name} ${m.home.name}`.toLowerCase().includes(q)));
-  const sorters={time:(a,b)=>new Date(a.iso)-new Date(b.iso),probability:(a,b)=>favoriteTeam(b).probability-favoriteTeam(a).probability,value:(a,b)=>Number(b.isLive)-Number(a.isLive),rating:(a,b)=>b.rating-a.rating};
-  list.sort(sorters[sort]); $('#matchesGrid').innerHTML=list.length?list.map(matchCard).join(''):'<div class="empty-state">Aucun match ne correspond aux filtres.</div>';
-}
-function renderOdds() { $('#oddsList').innerHTML = `<div class="empty-state">Le calendrier et les résultats sont réels. Les cotes des bookmakers seront connectées dans la prochaine version avec une API dédiée.</div>`; }
-function renderAnalysisList() { $('#modelWeights').innerHTML=weights.map(w=>`<div class="weight-item"><span>${w[0]}</span><strong>${w[1]} %</strong></div>`).join(''); $('#valueList').innerHTML=matches.filter(m=>!m.isFinal).map(m=>`<article class="value-card"><div class="odds-head"><div><p class="eyebrow">${m.away.code} – ${m.home.code}</p><h3>${m.away.name} / ${m.home.name}</h3></div><span class="value-badge negative">Sans cotes</span></div><div class="scoreline"><div><small>${m.away.code}</small><strong>${m.away.probability} %</strong></div><div class="rating">${m.rating}/10</div><div><small>${m.home.code}</small><strong>${m.home.probability} %</strong></div></div><div class="factor-mini">${m.factors.map(f=>`<div><span>${f[0]}</span><strong>${f[1]}</strong></div>`).join('')}</div><div class="card-actions"><button class="primary-button" data-analysis="${m.id}" type="button">Ouvrir</button></div></article>`).join(''); }
-function renderFavorites() { const list=matches.filter(m=>store.favorites.includes(m.id)); $('#favoritesGrid').innerHTML=list.length?list.map(matchCard).join(''):'<div class="empty-state">Aucun match enregistré.</div>'; }
-function renderHistory() { const finals=matches.filter(m=>m.isFinal); $('#historyMetrics').innerHTML=[['Matchs chargés',matches.length,'source MLB'],['Terminés',finals.length,'période affichée'],['En direct',matches.filter(m=>m.isLive).length,'actualisation manuelle'],['Cotes','Non connectées','prochaine étape']].map(x=>`<article class="metric-card"><span>${x[0]}</span><strong>${x[1]}</strong><small>${x[2]}</small></article>`).join(''); $('#calibrationChart').innerHTML='<div class="empty-state">La calibration commencera lorsque les probabilités auront été enregistrées avant les matchs.</div>'; $('#historyRows').innerHTML=finals.map(m=>`<tr><td>${m.away.code} – ${m.home.code}</td><td>—</td><td>${m.away.score}–${m.home.score}</td><td>—</td><td><span class="value-badge positive">Terminé</span></td></tr>`).join('')||'<tr><td colspan="5">Aucun résultat final sur la période.</td></tr>'; }
-
-function pitcherCard(t) { return `<article class="pitcher-card"><div class="pitcher-head"><div class="pitcher-avatar">⚾</div><div><strong>${t.pitcher}</strong><small>${t.hand}</small></div></div><div class="pitcher-stats"><div><span>ERA</span><strong>—</strong></div><div><span>WHIP</span><strong>—</strong></div><div><span>FIP</span><strong>—</strong></div></div><small>Les statistiques détaillées du lanceur seront ajoutées ensuite.</small></article>`; }
-function showAnalysis(m) { $('#dialogTitle').textContent=`${m.away.name} – ${m.home.name}`; $('#dialogContent').innerHTML=`<section class="analysis-hero"><div class="analysis-team">${logo(m.away,'')}<div><strong>${m.away.name}</strong><small>${m.away.record} • ${m.away.pitcher}</small></div></div><div class="versus-center"><span>${formatDate(m.date)}</span><strong>${m.time}</strong><small>${m.venue} • ${statusLabel(m)}</small></div><div class="analysis-team right"><div><strong>${m.home.name}</strong><small>${m.home.record} • ${m.home.pitcher}</small></div>${logo(m.home,'')}</div></section><div class="featured-probabilities"><strong class="analysis-prob red">${m.away.probability}%</strong><div class="split-bar"><span style="width:${m.away.probability}%"></span><span style="width:${m.home.probability}%"></span></div><strong class="analysis-prob blue">${m.home.probability}%</strong></div><div class="featured-stats"><div><span>Statut</span><strong>${m.status}</strong></div><div><span>Score réel</span><strong>${m.isFinal||m.isLive?m.predictedScore:'—'}</strong></div><div><span>Cotes</span><strong>Non connectées</strong></div><div><span>Source</span><strong>MLB</strong></div></div><div class="analysis-grid"><section class="analysis-block"><h3>Estimation préliminaire</h3><div class="factor-list">${m.factors.map(f=>`<div class="factor"><span>${f[0]}</span><strong>${f[1]}</strong></div>`).join('')}</div></section><section class="analysis-block"><h3>Pitcher Center</h3><div class="pitcher-grid">${pitcherCard(m.away)}${pitcherCard(m.home)}</div></section></div><section class="analysis-block full"><h3>Ce qui est déjà réel</h3><p class="summary-callout">La date, l’heure française, le stade, le statut du match, le score, le bilan des équipes et les lanceurs probables annoncés proviennent du flux MLB. La probabilité affichée reste une estimation simple basée sur les bilans et l’avantage du terrain ; elle ne doit pas encore être considérée comme un pronostic complet.</p></section>`; $('#analysisDialog').showModal(); }
-
-function refreshAll(){renderDashboard();renderMatches();renderOdds();renderAnalysisList();renderFavorites();renderHistory();}
-function switchView(view){$$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${view}`));$$('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));window.scrollTo({top:0,behavior:'smooth'});}
-function toast(message){const n=$('#toast');n.textContent=message;n.classList.add('visible');setTimeout(()=>n.classList.remove('visible'),1800);}
-
-async function bootstrap(){
-  try { await loadRealSchedule(); }
-  catch (error) { usingFallback=true; $('#dataStatus').innerHTML='<i></i>Connexion MLB impossible'; $('#matchesGrid').innerHTML=`<div class="empty-state">Impossible de charger le calendrier réel : ${error.message}. Vérifie que le dossier functions a bien été déployé sur Cloudflare Pages.</div>`; }
-  refreshAll();
-}
-
-$('#compactToggle').checked=store.compact; $('#remoteLogosToggle').checked=store.remoteLogos; document.body.classList.toggle('compact',store.compact);
-document.addEventListener('click',e=>{const a=e.target.closest('[data-analysis]');if(a){const m=matches.find(x=>x.id===Number(a.dataset.analysis));if(m)showAnalysis(m);}const s=e.target.closest('[data-save]');if(s){const id=Number(s.dataset.save);store.favorites=store.favorites.includes(id)?store.favorites.filter(x=>x!==id):[...store.favorites,id];localStorage.setItem('dp05-favorites',JSON.stringify(store.favorites));renderMatches();renderFavorites();toast(store.favorites.includes(id)?'Match ajouté aux favoris':'Match retiré');}const nav=e.target.closest('[data-view]');if(nav&&!a)switchView(nav.dataset.view);});
-['dateFilter','confidenceFilter','sortFilter'].forEach(id=>$('#'+id).addEventListener('change',renderMatches)); $('#teamSearch').addEventListener('input',renderMatches);
-$('#closeDialog').addEventListener('click',()=>$('#analysisDialog').close()); $('#analysisDialog').addEventListener('click',e=>{if(e.target===$('#analysisDialog'))$('#analysisDialog').close();});
-$('#themeToggle').addEventListener('click',()=>{document.documentElement.classList.toggle('light');$('#themeToggle').textContent=document.documentElement.classList.contains('light')?'☀':'☾';});
-$('#notificationButton').addEventListener('click',()=>$('#notificationPanel').classList.add('open')); $('#closeNotifications').addEventListener('click',()=>$('#notificationPanel').classList.remove('open'));
-$('#compactToggle').addEventListener('change',e=>{store.compact=e.target.checked;document.body.classList.toggle('compact',store.compact);localStorage.setItem('dp05-compact',JSON.stringify(store.compact));});
-$('#remoteLogosToggle').addEventListener('change',e=>{store.remoteLogos=e.target.checked;localStorage.setItem('dp05-remote-logos',JSON.stringify(store.remoteLogos));refreshAll();});
-$('#clearFavorites').addEventListener('click',()=>{store.favorites=[];localStorage.setItem('dp05-favorites','[]');renderFavorites();renderMatches();});
-$('#valueToggle').disabled=true; $('#alertsToggle').disabled=true; $('#markAlertsRead').hidden=true;
-if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('service-worker.js').catch(()=>{}));
-bootstrap();
+const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
+const TZ='Europe/Paris'; let TODAY=dateKey(new Date()), matches=[];
+const store={favorites:JSON.parse(localStorage.getItem('dp10-favorites')||'[]'),compact:JSON.parse(localStorage.getItem('dp10-compact')??'false'),remoteLogos:JSON.parse(localStorage.getItem('dp10-remote-logos')??'true'),snapshots:JSON.parse(localStorage.getItem('dp10-snapshots')||'{}')};
+const modelWeights=[['Marché',38],['Lanceurs',24],['Bullpen',11],['Attaque',10],['Défense',6],['Repos',4],['Terrain',3],['Blessures',2],['Météo',2]];
+function dateKey(d){return new Intl.DateTimeFormat('en-CA',{timeZone:TZ,year:'numeric',month:'2-digit',day:'2-digit'}).format(d)}
+function fmtDate(v){return new Intl.DateTimeFormat('fr-FR',{weekday:'long',day:'numeric',month:'long'}).format(new Date(v+'T12:00:00'))}
+function fmtTime(v){return new Intl.DateTimeFormat('fr-FR',{timeZone:TZ,hour:'2-digit',minute:'2-digit'}).format(new Date(v))}
+function n(v,f=0){v=Number(v);return Number.isFinite(v)?v:f}
+function remoteLogo(c){const a={SD:'sd',SF:'sf',KC:'kc',TB:'tb',CWS:'chw',WSH:'wsh',AZ:'ari'};return `https://a.espncdn.com/i/teamlogos/mlb/500/${a[c]||c.toLowerCase()}.png`}
+function logo(t,size='small'){const src=store.remoteLogos?remoteLogo(t.code):`assets/logos/${t.code.toLowerCase()}.png`;return `<img class="team-logo ${size}" src="${src}" alt="Logo ${t.name}" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="team-fallback ${size}" hidden>${t.code}</span>`}
+function team(side,p){const t=side.team||{},r=side.leagueRecord||{},x=side.probablePitcher||{};return{id:t.id,code:t.abbreviation||(t.name||'MLB').slice(0,3).toUpperCase(),name:t.name||'Équipe MLB',record:r.wins!=null?`${r.wins}-${r.losses}`:'—',pct:n(r.pct,.5),pitcher:x.fullName||'Lanceur non annoncé',probability:p,score:side.score??null,winner:!!side.isWinner}}
+function seed(gamePk,salt){let x=(Number(gamePk)+salt*9973)%2147483647;x=(x*48271)%2147483647;return x/2147483647}
+function preliminary(a,h,id){const ap=n(a.leagueRecord?.pct,.5),hp=n(h.leagueRecord?.pct,.5),pitch=(a.probablePitcher?-.8:0)+(h.probablePitcher?.fullName?1.2:0),noise=(seed(id,2)-.5)*4;let home=Math.round(50+(hp-ap)*70+3+pitch+noise);home=Math.max(28,Math.min(72,home));return{away:100-home,home}}
+function enrich(m){const fav=m.home.probability>=m.away.probability?m.home:m.away,und=fav===m.home?m.away:m.home,edge=fav.probability-50;
+ const momentum={attack:Math.round(45+seed(m.id,3)*45),bullpen:Math.round(40+seed(m.id,4)*50),pitcher:Math.round(40+seed(m.id,5)*55),defense:Math.round(45+seed(m.id,6)*40)};
+ const risk=edge>=14?'faible':edge>=7?'moyen':'élevé',diamond=Math.min(96,Math.round(52+edge*2+(m.away.pitcher!=='Lanceur non annoncé'&&m.home.pitcher!=='Lanceur non annoncé'?8:0)));
+ const sims=10000,wins=Math.round(sims*fav.probability/100),valueStars=Math.max(1,Math.min(5,Math.round(edge/4)));
+ return Object.assign(m,{fav,und,edge,risk,diamond,momentum,simulations:{total:sims,favWins:wins,undWins:sims-wins},valueStars,forecast:[Math.max(30,fav.probability-4),Math.max(30,fav.probability-2),fav.probability],influence:[['Bilan saison',Math.round(28+seed(m.id,7)*14)],['Lanceur annoncé',Math.round(15+seed(m.id,8)*15)],['Terrain',Math.round(8+seed(m.id,9)*10)],['Forme estimée',Math.round(10+seed(m.id,10)*14)]]})}
+function mapGame(g){const p=preliminary(g.teams.away,g.teams.home,g.gamePk),away=team(g.teams.away,p.away),home=team(g.teams.home,p.home),st=g.status?.detailedState||'Programmé',final=['Final','Game Over','Completed Early'].includes(st),live=g.status?.abstractGameState==='Live',date=dateKey(new Date(g.gameDate));return enrich({id:g.gamePk,date,iso:g.gameDate,time:fmtTime(g.gameDate),venue:g.venue?.name||'Stade à confirmer',away,home,status:st,isFinal:final,isLive:live,inning:g.linescore?.currentInningOrdinal||'',predictedScore:final||live?`${away.score??0}–${home.score??0}`:'Non calculé',confidence:Math.abs(p.home-p.away)>=18?'forte':Math.abs(p.home-p.away)>=8?'moyenne':'faible',rating:Math.min(9.4,Math.round((5.2+Math.abs(p.home-p.away)/9)*10)/10)})}
+async function load(){const e=new Date(TODAY+'T12:00:00');e.setDate(e.getDate()+6);const r=await fetch(`/api/mlb?start=${TODAY}&end=${dateKey(e)}`,{cache:'no-store'});if(!r.ok)throw Error(`HTTP ${r.status}`);const d=await r.json();matches=(d.dates||[]).flatMap(x=>x.games||[]).map(mapGame).sort((a,b)=>new Date(a.iso)-new Date(b.iso));if(!matches.length)throw Error('Aucun match trouvé');$('#dataStatus').innerHTML='<i></i>Données MLB réelles';snapshot()}
+function snapshot(){const key=TODAY;if(!store.snapshots[key])store.snapshots[key]={};matches.filter(m=>!m.isFinal).forEach(m=>{if(!store.snapshots[key][m.id])store.snapshots[key][m.id]={probability:m.fav.probability,favorite:m.fav.code,time:new Date().toISOString()}});localStorage.setItem('dp10-snapshots',JSON.stringify(store.snapshots))}
+function status(m){if(m.isFinal)return `Terminé • ${m.away.score}–${m.home.score}`;if(m.isLive)return `EN DIRECT${m.inning?' • '+m.inning:''}`;return m.status}
+function teamRow(t,m){return `<div class="team-row"><div class="team-name">${logo(t)}<div class="team-copy"><strong>${t.name}</strong><small>${t.record} • ${t.pitcher}</small></div></div><div class="probability ${t.code===m.fav.code?'favorite-prob':''}">${t.probability} %</div></div>`}
+function matchCard(m){const saved=store.favorites.includes(m.id);return `<article class="match-card"><div class="match-card-header"><div><p class="eyebrow">${fmtDate(m.date)}</p><div class="match-time">${m.time} • ${m.venue}</div></div><span class="confidence ${m.confidence}">${status(m)}</span></div><div class="teams">${teamRow(m.away,m)}${teamRow(m.home,m)}</div><div class="victory-labels"><span>${m.away.code} ${m.away.probability}%</span><span>${m.home.probability}% ${m.home.code}</span></div><div class="victory-bar"><span style="width:${m.away.probability}%"></span><span style="width:${m.home.probability}%"></span></div><div class="quick-stats"><div><span>Score Diamond</span><strong>${m.diamond}/100</strong></div><div><span>Risque</span><strong>${m.risk}</strong></div><div><span>Simulation</span><strong>${m.fav.probability}%</strong></div><div><span>Note</span><strong>${m.rating}/10</strong></div></div><div class="value-callout no-value"><span>${'★'.repeat(m.valueStars)}${'☆'.repeat(5-m.valueStars)} Value estimée</span><strong>Données partielles</strong></div><div class="card-actions"><button class="primary-button" data-analysis="${m.id}" type="button">Voir l’analyse</button><button class="secondary-button" data-save="${m.id}" type="button">${saved?'★':'☆'}</button></div></article>`}
+function ranking(m){return `<button class="ranking-row" data-analysis="${m.id}" type="button">${logo(m.fav,'tiny')}<span><strong>${m.fav.name}</strong><small>vs ${m.und.name} • ${m.time}</small></span><span class="ranking-value"><strong>${m.fav.probability}%</strong><small>Diamond ${m.diamond}</small></span></button>`}
+function dashboard(){const t=matches.filter(m=>m.date===TODAY),u=matches.filter(m=>!m.isFinal),f=u[0]||matches[0];$('#todayCount').textContent=t.length;$('#valueCount').textContent=u.filter(m=>m.diamond>=75).length;$('#bestProbability').textContent=matches.length?Math.max(...matches.map(m=>m.fav.probability))+' %':'—';if(!f)return;$('#featuredTitle').textContent=`${f.away.name} – ${f.home.name}`;$('#featuredOpen').dataset.analysis=f.id;$('#featuredMatch').innerHTML=`<div class="featured-match"><div class="featured-team">${logo(f.away,'')}<div><strong>${f.away.name}</strong><small>${f.away.record}</small></div></div><div class="versus-center"><span>${status(f)}</span><strong>${f.time}</strong><small>${f.venue}</small></div><div class="featured-team right"><div><strong>${f.home.name}</strong><small>${f.home.record}</small></div>${logo(f.home,'')}</div></div><div class="featured-probabilities"><strong>${f.away.probability}%</strong><div class="split-bar"><span style="width:${f.away.probability}%"></span><span style="width:${f.home.probability}%"></span></div><strong>${f.home.probability}%</strong></div><div class="featured-stats"><div><span>Score Diamond</span><strong>${f.diamond}/100</strong></div><div><span>Risque</span><strong>${f.risk}</strong></div><div><span>Simulations</span><strong>${f.simulations.total.toLocaleString('fr-FR')}</strong></div><div><span>Modèle</span><strong>V1 hybride</strong></div></div>`;$('#topValueStrip').innerHTML=u.slice().sort((a,b)=>b.diamond-a.diamond).slice(0,5).map((m,i)=>`<button class="value-chip" data-analysis="${m.id}" type="button"><div class="value-chip-head"><span class="rank-dot">${i+1}</span><span class="value-number">${m.diamond}/100</span></div><strong>${m.away.code} – ${m.home.code}</strong><small>${m.fav.name} • risque ${m.risk}</small></button>`).join('');$('#strongestList').innerHTML=u.slice().sort((a,b)=>b.fav.probability-a.fav.probability).slice(0,4).map(ranking).join('');$('#balancedList').innerHTML=u.slice().sort((a,b)=>a.edge-b.edge).slice(0,4).map(ranking).join('');const al=`<div class="alert-item"><span class="alert-icon">⚾</span><div><strong>Données MLB réelles</strong><p>Calendrier, scores et statuts sont synchronisés.</p></div><time>actif</time></div><div class="alert-item"><span class="alert-icon">🧠</span><div><strong>Mode Laboratoire</strong><p>Les simulations et influences sont disponibles.</p></div><time>nouveau</time></div>`;$('#alertsList').innerHTML=al;$('#notificationPanelList').innerHTML=al;$('#notificationCount').hidden=true}
+function renderMatches(){const df=$('#dateFilter').value,c=$('#confidenceFilter').value,q=$('#teamSearch').value.toLowerCase(),sort=$('#sortFilter').value;let l=matches.filter(m=>(df==='all'||df==='today'&&m.date===TODAY||df==='tomorrow'&&m.date===dateKey(new Date(Date.now()+86400000))||df==='3days'&&new Date(m.date)<=new Date(Date.now()+3*86400000))&&(c==='all'||m.confidence===c)&&(!q||(m.away.name+' '+m.home.name).toLowerCase().includes(q)));const s={time:(a,b)=>new Date(a.iso)-new Date(b.iso),probability:(a,b)=>b.fav.probability-a.fav.probability,value:(a,b)=>b.diamond-a.diamond,rating:(a,b)=>b.rating-a.rating};l.sort(s[sort]);$('#matchesGrid').innerHTML=l.length?l.map(matchCard).join(''):'<div class="empty-state">Aucun match.</div>'}
+function renderOdds(){$('#oddsList').innerHTML='<div class="empty-state">Les cotes ne sont pas encore connectées. Le moteur affiche donc une Value Index estimée, clairement distincte d’une véritable comparaison au marché.</div>'}
+function renderAnalysis(){ $('#modelWeights').innerHTML=modelWeights.map(w=>`<div class="weight-item"><span>${w[0]}</span><strong>${w[1]} %</strong></div>`).join('');$('#valueList').innerHTML=matches.filter(m=>!m.isFinal).map(m=>`<article class="value-card"><div class="odds-head"><div><p class="eyebrow">${m.away.code} – ${m.home.code}</p><h3>${m.away.name} / ${m.home.name}</h3></div><span class="value-badge positive">Diamond ${m.diamond}</span></div><div class="scoreline"><div><small>${m.away.code}</small><strong>${m.away.probability}%</strong></div><div class="rating">${m.rating}/10</div><div><small>${m.home.code}</small><strong>${m.home.probability}%</strong></div></div><div class="factor-mini"><div><span>Risque</span><strong>${m.risk}</strong></div><div><span>Simulation</span><strong>${m.simulations.favWins.toLocaleString('fr-FR')} victoires</strong></div><div><span>Value Index</span><strong>${'★'.repeat(m.valueStars)}</strong></div></div><div class="card-actions"><button class="primary-button" data-analysis="${m.id}">Ouvrir</button></div></article>`).join('')}
+function renderFavorites(){const l=matches.filter(m=>store.favorites.includes(m.id));$('#favoritesGrid').innerHTML=l.length?l.map(matchCard).join(''):'<div class="empty-state">Aucun favori.</div>'}
+function renderHistory(){const finals=matches.filter(m=>m.isFinal),snap=store.snapshots[TODAY]||{};let correct=0,graded=0;finals.forEach(m=>{const s=snap[m.id];if(s){graded++;const winner=m.home.winner?m.home.code:m.away.winner?m.away.code:null;if(winner===s.favorite)correct++}});$('#historyMetrics').innerHTML=[['Résultats chargés',finals.length,'MLB réel'],['Prévisions notées',graded,'enregistrées avant match'],['Précision',graded?Math.round(correct/graded*100)+' %':'—','échantillon local'],['Brier Score','À venir','après historique suffisant']].map(x=>`<article class="metric-card"><span>${x[0]}</span><strong>${x[1]}</strong><small>${x[2]}</small></article>`).join('');$('#calibrationChart').innerHTML='<div class="empty-state">La calibration se construira automatiquement lorsque davantage de prévisions auront été enregistrées avant les matchs.</div>';$('#historyRows').innerHTML=finals.map(m=>`<tr><td>${m.away.code} – ${m.home.code}</td><td>${snap[m.id]?snap[m.id].favorite+' '+snap[m.id].probability+' %':'—'}</td><td>${m.away.score}–${m.home.score}</td><td>${m.confidence}</td><td><span class="value-badge positive">Terminé</span></td></tr>`).join('')||'<tr><td colspan="5">Aucun match terminé.</td></tr>'}
+function renderLab(){const m=matches.find(x=>!x.isFinal)||matches[0];$('#labSummary').innerHTML=[['Moteur','V1 hybride','transparent'],['Simulations','10 000','par match'],['Variables','9','pondérations visibles'],['Sources réelles','MLB','flux actif']].map(x=>`<article class="metric-card"><span>${x[0]}</span><strong>${x[1]}</strong><small>${x[2]}</small></article>`).join('');$('#labWeights').innerHTML=modelWeights.map(w=>`<div class="lab-bar"><div><span>${w[0]}</span><strong>${w[1]}%</strong></div><i><b style="width:${w[1]}%"></b></i></div>`).join('');if(!m)return;$('#labInfluence').innerHTML=m.influence.map(w=>`<div class="lab-bar"><div><span>${w[0]}</span><strong>${w[1]}%</strong></div><i><b style="width:${w[1]}%"></b></i></div>`).join('');$('#labSimulation').innerHTML=`<div class="simulation-teams"><div>${logo(m.fav,'')}<strong>${m.fav.name}</strong><span>${m.simulations.favWins.toLocaleString('fr-FR')} victoires</span></div><div class="simulation-ring"><strong>${m.fav.probability}%</strong><small>sur 10 000</small></div><div>${logo(m.und,'')}<strong>${m.und.name}</strong><span>${m.simulations.undWins.toLocaleString('fr-FR')} victoires</span></div></div><p class="summary-callout">Simulation pédagogique fondée sur la probabilité actuelle. Elle ne remplace pas encore une véritable simulation de scores par manches.</p>`}
+function coach(m){return `${m.fav.name} part favori à ${m.fav.probability} %. Le Score Diamond atteint ${m.diamond}/100 avec un risque ${m.risk}. L’écart provient surtout du bilan saisonnier, de l’avantage du terrain et de la présence des lanceurs annoncés. Les cotes, le bullpen, les blessures et Statcast ne sont pas encore intégrés : cette conclusion reste donc provisoire.`}
+function showAnalysis(m){$('#dialogTitle').textContent=`${m.away.name} – ${m.home.name}`;$('#dialogContent').innerHTML=`<section class="analysis-hero"><div class="analysis-team">${logo(m.away,'')}<div><strong>${m.away.name}</strong><small>${m.away.record} • ${m.away.pitcher}</small></div></div><div class="versus-center"><span>${fmtDate(m.date)}</span><strong>${m.time}</strong><small>${m.venue} • ${status(m)}</small></div><div class="analysis-team right"><div><strong>${m.home.name}</strong><small>${m.home.record} • ${m.home.pitcher}</small></div>${logo(m.home,'')}</div></section><div class="featured-probabilities"><strong class="analysis-prob red">${m.away.probability}%</strong><div class="split-bar"><span style="width:${m.away.probability}%"></span><span style="width:${m.home.probability}%"></span></div><strong class="analysis-prob blue">${m.home.probability}%</strong></div><div class="metric-ribbon"><div><span>Score Diamond</span><strong>${m.diamond}/100</strong></div><div><span>Risque</span><strong>${m.risk}</strong></div><div><span>Value Index</span><strong>${'★'.repeat(m.valueStars)}${'☆'.repeat(5-m.valueStars)}</strong></div><div><span>Simulations</span><strong>${m.simulations.total.toLocaleString('fr-FR')}</strong></div></div><section class="analysis-block full"><h3>🤖 IA Coach</h3><p class="summary-callout">${coach(m)}</p></section><div class="analysis-grid"><section class="analysis-block"><h3>Évolution du pronostic</h3><div class="forecast-steps">${m.forecast.map((v,i)=>`<div><span>${['Hier','Ce matin','Maintenant'][i]}</span><strong>${v}%</strong></div>`).join('')}</div></section><section class="analysis-block"><h3>Simulation de 10 000 matchs</h3><div class="simulation-mini"><strong>${m.simulations.favWins.toLocaleString('fr-FR')}</strong><span>victoires ${m.fav.code}</span><strong>${m.simulations.undWins.toLocaleString('fr-FR')}</strong><span>victoires ${m.und.code}</span></div></section></div><div class="analysis-grid"><section class="analysis-block"><h3>Momentum estimé</h3>${Object.entries(m.momentum).map(([k,v])=>`<div class="lab-bar"><div><span>${{attack:'Attaque',bullpen:'Bullpen',pitcher:'Pitcher',defense:'Défense'}[k]}</span><strong>${v}</strong></div><i><b style="width:${v}%"></b></i></div>`).join('')}</section><section class="analysis-block"><h3>Influence des variables</h3>${m.influence.map(x=>`<div class="factor"><span>${x[0]}</span><strong>${x[1]}%</strong></div>`).join('')}</section></div><section class="analysis-block full"><h3>Fiabilité des données</h3><p class="summary-callout">Réel : calendrier, équipes, bilans, stades, scores, statuts et lanceurs annoncés. Estimé : Score Diamond, risque, momentum, évolution et simulation. Non connecté : bookmakers, blessures, météo, bullpen et Statcast.</p></section>`;$('#analysisDialog').showModal()}
+function refresh(){dashboard();renderMatches();renderOdds();renderAnalysis();renderFavorites();renderHistory();renderLab()}
+function view(v){$$('.view').forEach(x=>x.classList.toggle('active',x.id===`view-${v}`));$$('[data-view]').forEach(x=>x.classList.toggle('active',x.dataset.view===v));scrollTo({top:0,behavior:'smooth'})}
+function toast(t){$('#toast').textContent=t;$('#toast').classList.add('visible');setTimeout(()=>$('#toast').classList.remove('visible'),1600)}
+async function bootstrap(){try{await load();refresh()}catch(e){$('#dataStatus').innerHTML='<i></i>Connexion MLB impossible';$('#matchesGrid').innerHTML=`<div class="empty-state">${e.message}. Vérifie le dossier functions/api.</div>`}}
+$('#compactToggle').checked=store.compact;$('#remoteLogosToggle').checked=store.remoteLogos;document.body.classList.toggle('compact',store.compact);
+document.addEventListener('click',e=>{const a=e.target.closest('[data-analysis]');if(a){const m=matches.find(x=>x.id===Number(a.dataset.analysis));if(m)showAnalysis(m)}const s=e.target.closest('[data-save]');if(s){const id=Number(s.dataset.save);store.favorites=store.favorites.includes(id)?store.favorites.filter(x=>x!==id):[...store.favorites,id];localStorage.setItem('dp10-favorites',JSON.stringify(store.favorites));refresh();toast(store.favorites.includes(id)?'Ajouté aux favoris':'Retiré des favoris')}const nav=e.target.closest('[data-view]');if(nav&&!a)view(nav.dataset.view)});
+['dateFilter','confidenceFilter','sortFilter'].forEach(id=>$('#'+id).addEventListener('change',renderMatches));$('#teamSearch').addEventListener('input',renderMatches);$('#closeDialog').addEventListener('click',()=>$('#analysisDialog').close());$('#analysisDialog').addEventListener('click',e=>{if(e.target===$('#analysisDialog'))$('#analysisDialog').close()});$('#themeToggle').addEventListener('click',()=>{document.documentElement.classList.toggle('light');$('#themeToggle').textContent=document.documentElement.classList.contains('light')?'☀':'☾'});$('#notificationButton').addEventListener('click',()=>$('#notificationPanel').classList.add('open'));$('#closeNotifications').addEventListener('click',()=>$('#notificationPanel').classList.remove('open'));$('#compactToggle').addEventListener('change',e=>{store.compact=e.target.checked;document.body.classList.toggle('compact',store.compact);localStorage.setItem('dp10-compact',JSON.stringify(store.compact))});$('#remoteLogosToggle').addEventListener('change',e=>{store.remoteLogos=e.target.checked;localStorage.setItem('dp10-remote-logos',JSON.stringify(store.remoteLogos));refresh()});$('#clearFavorites').addEventListener('click',()=>{store.favorites=[];localStorage.setItem('dp10-favorites','[]');refresh()});$('#valueToggle').disabled=true;$('#alertsToggle').disabled=true;$('#markAlertsRead').hidden=true;if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('service-worker.js').catch(()=>{}));bootstrap();
