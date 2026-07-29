@@ -1,1 +1,1 @@
-{"name":"DiamondPredict","short_name":"DiamondPredict","start_url":"./","display":"standalone","background_color":"#061226","theme_color":"#061226","description":"Analyse personnelle des matchs MLB","icons":[{"src":"assets/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
+{"name":"DiamondPredict","short_name":"DiamondPredict","start_url":"/","display":"standalone","background_color":"#061326","theme_color":"#061326","icons":[{"src":"assets/icon.svg","sizes":"any","type":"image/svg+xml"}]}

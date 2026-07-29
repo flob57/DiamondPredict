@@ -1,0 +1,2 @@
+import {dateKey} from './utils.js';
+export async function fetchMLB(){const start=dateKey(new Date()),e=new Date(start+'T12:00:00');e.setDate(e.getDate()+6);const end=dateKey(e);const url=new URL('/api/mlb',location.origin);url.searchParams.set('start',start);url.searchParams.set('end',end);const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error(`HTTP ${r.status}`);const d=await r.json();if(!Array.isArray(d.dates))throw new Error('Réponse MLB invalide');return d;}
