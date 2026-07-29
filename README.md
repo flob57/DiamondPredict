@@ -1,60 +1,32 @@
-# DiamondPredict V0.4
+# DiamondPredict 0.5 — calendrier MLB réel
 
-Application web personnelle de démonstration consacrée à l’analyse de matchs MLB.
+Cette version connecte l'application au flux MLB pour afficher :
 
-## Nouveautés
+- le véritable calendrier MLB sur 7 jours ;
+- les horaires convertis en heure française ;
+- les stades ;
+- les bilans des équipes ;
+- les lanceurs probables annoncés ;
+- le statut des rencontres ;
+- les scores en direct et les résultats finaux.
 
-- Tableau de bord complet
-- Match vedette
-- Top 5 Value
-- Alertes de mouvements de cotes et changements de lanceurs
-- Calendrier sur plusieurs jours
-- Comparateur de bookmakers
-- Analyse détaillée avec contexte, forme, bullpen et confrontations
-- Pitcher Center enrichi
-- Synthèse automatique du pronostic
-- Historique, calibration et ROI simulé
-- Favoris persistants
-- Mode clair, sombre et compact
-- Installation comme PWA
-- Logos distants avec repli automatique vers des fichiers locaux
+## Déploiement Cloudflare Pages
 
-## Déploiement GitHub + Cloudflare Pages
+1. Remplace les anciens fichiers de ton dépôt GitHub par tout le contenu de ce dossier.
+2. Vérifie que le dossier `functions/api/mlb.js` est bien présent dans GitHub.
+3. Redéploie le projet Cloudflare Pages.
+4. Aucune clé API n'est nécessaire pour cette étape.
 
-1. Crée un nouveau dépôt GitHub.
-2. Décompresse l’archive.
-3. Envoie tous les fichiers à la racine du dépôt.
-4. Dans Cloudflare Pages, connecte le dépôt.
-5. Framework preset : `None`.
-6. Build command : laisser vide.
-7. Build output directory : `/`.
-
-## Logos des équipes
-
-Par défaut, l’application tente de charger des logos distants. Tu peux désactiver cette option dans **Réglages** et ajouter tes propres fichiers PNG dans :
-
-`assets/logos/`
-
-Les noms attendus sont les codes MLB en minuscules :
-
-- `nyy.png`
-- `bos.png`
-- `lad.png`
-- `sd.png`
-- `hou.png`
-- `tex.png`
-- `phi.png`
-- `mia.png`
-- `atl.png`
-- `chc.png`
-- `tor.png`
-- `sea.png`
-- `tb.png`
-- `mil.png`
-- `nym.png`
-
-L’application affiche automatiquement un badge texte si un logo manque.
+La fonction Cloudflare `/api/mlb` sert de relais entre l'interface et le flux MLB. Elle met les réponses en cache pendant 60 secondes.
 
 ## Important
 
-Toutes les données, cotes, prévisions, alertes, performances et synthèses de cette version sont fictives. Cette version sert à valider l’interface avant la connexion à des API réelles.
+Les probabilités de la V0.5 sont encore **préliminaires**. Elles utilisent uniquement le bilan réel des équipes et un léger avantage domicile. Les cotes bookmakers, la forme récente, les statistiques complètes des lanceurs et le véritable moteur prédictif seront connectés ensuite.
+
+## Test
+
+Après le déploiement, ouvre :
+
+`https://TON-SITE.pages.dev/api/mlb`
+
+Tu dois obtenir du JSON contenant `source`, `dates` et `totalGames`.

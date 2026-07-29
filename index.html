@@ -9,14 +9,14 @@
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/icon.svg">
   <link rel="stylesheet" href="styles.css">
-  <title>DiamondPredict 0.4</title>
+  <title>DiamondPredict 0.5</title>
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
       <button class="brand" type="button" data-view="dashboard" aria-label="Accueil DiamondPredict">
         <span class="brand-mark">⚾</span>
-        <span><small>MLB • VERSION 0.4</small><strong>Diamond<span>Predict</span></strong></span>
+        <span><small>MLB • VERSION 0.5</small><strong>Diamond<span>Predict</span></strong></span>
       </button>
       <nav class="desktop-nav" aria-label="Navigation principale">
         <button class="nav-link active" data-view="dashboard" type="button">⌂ Tableau de bord</button>
@@ -26,7 +26,7 @@
         <button class="nav-link" data-view="history" type="button">◷ Historique</button>
       </nav>
       <div class="top-actions">
-        <span class="demo-pill"><i></i>Données démo</span>
+        <span class="demo-pill" id="dataStatus"><i></i>Connexion MLB…</span>
         <button class="icon-button" id="notificationButton" type="button" aria-label="Afficher les alertes">🔔<b id="notificationCount">3</b></button>
         <button class="icon-button" id="themeToggle" type="button" aria-label="Changer le thème">☾</button>
       </div>
@@ -88,12 +88,12 @@
       </section>
 
       <section class="view" id="view-odds">
-        <div class="page-heading"><div><p class="eyebrow">Marché</p><h1>Comparateur de cotes</h1><p>Consensus, meilleure cote et mouvement simulé du marché.</p></div></div>
+        <div class="page-heading"><div><p class="eyebrow">Marché</p><h1>Comparateur de cotes</h1><p>Les cotes seront connectées dans l’étape suivante ; le calendrier et les résultats sont désormais réels.</p></div></div>
         <section id="oddsList" class="odds-grid"></section>
       </section>
 
       <section class="view" id="view-analysis">
-        <div class="page-heading"><div><p class="eyebrow">Modèle</p><h1>Analyses recommandées</h1><p>Classement selon l’écart entre le marché et notre estimation.</p></div></div>
+        <div class="page-heading"><div><p class="eyebrow">Modèle</p><h1>Analyses recommandées</h1><p>Estimations préliminaires à partir des bilans réels des équipes. Les cotes ne sont pas encore connectées.</p></div></div>
         <section class="model-explainer panel">
           <div><p class="eyebrow">Moteur V2</p><h2>Répartition actuelle du calcul</h2><p>Les pondérations restent simulées dans cette version et seront calibrées avec les résultats réels.</p></div>
           <div id="modelWeights" class="weight-grid"></div>
