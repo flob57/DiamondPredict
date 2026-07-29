@@ -40,3 +40,10 @@ Exécuter `schema.sql` dans la console D1 si cela n’a pas déjà été fait, p
 - `/api/history?days=90`
 
 L’API historique ne renvoie désormais que des matchs terminés disposant de deux scores numériques.
+
+
+## V4.0 Roadmap (préparation)
+- Qualité renommée en 'Qualité des données'.
+- Badges de qualité ERA/WHIP/K9/BB9.
+- Diamond Index.
+- Learning Engine (structure).
