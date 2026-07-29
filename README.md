@@ -1,9 +1,15 @@
-# DiamondPredict V3.0
+# DiamondPredict V3.1
 
 Version gratuite et modulaire avec calendrier MLB, statistiques avancées, cotes The Odds API, favoris et prévisions synchronisés avec Cloudflare D1.
 
-## Nouveautés V3.0
+## Nouveautés V3.1
 
+- nouvel onglet **Mes paris** avec match, sélection, bookmaker, cote et mise ;
+- calcul automatique du gain potentiel, du bénéfice net, du ROI et du taux de réussite ;
+- suivi des statuts en attente, gagné, perdu ou remboursé ;
+- règlement automatique lorsque le résultat MLB correspondant est disponible ;
+- raccourci **Parier** depuis chaque carte de match et depuis l’analyse ;
+- conservation locale des paris dans le navigateur ;
 - correction du bug `undefined–undefined` dans l’historique ;
 - exclusion stricte des rencontres non terminées ou sans score numérique ;
 - historique filtrable par date, équipe et verdict ;
@@ -40,10 +46,3 @@ Exécuter `schema.sql` dans la console D1 si cela n’a pas déjà été fait, p
 - `/api/history?days=90`
 
 L’API historique ne renvoie désormais que des matchs terminés disposant de deux scores numériques.
-
-
-## V4.0 Roadmap (préparation)
-- Qualité renommée en 'Qualité des données'.
-- Badges de qualité ERA/WHIP/K9/BB9.
-- Diamond Index.
-- Learning Engine (structure).
