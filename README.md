@@ -1,58 +1,42 @@
-# DiamondPredict V2.1 Sync
+# DiamondPredict V3.0
 
-Cette édition conserve toutes les fonctions de la V2.1 et synchronise gratuitement les favoris et les prévisions entre PC et iPhone grâce à Cloudflare D1. Le stockage local reste actif comme solution de secours.
+Version gratuite et modulaire avec calendrier MLB, statistiques avancées, cotes The Odds API, favoris et prévisions synchronisés avec Cloudflare D1.
 
-## 1. Copier les fichiers
+## Nouveautés V3.0
 
-Copiez tout le contenu de ce dossier à la racine du dépôt GitHub. Les dossiers `assets/` et `functions/` doivent rester à la racine.
+- correction du bug `undefined–undefined` dans l’historique ;
+- exclusion stricte des rencontres non terminées ou sans score numérique ;
+- historique filtrable par date, équipe et verdict ;
+- comparaison entre résultat réel et prévision enregistrée avant match ;
+- fiche d’analyse enrichie : forme récente, runs, OPS, moyenne au bâton, ERA et WHIP collectifs ;
+- duel détaillé des lanceurs ;
+- consensus des bookmakers, meilleures cotes et niveau de value ;
+- dix dernières confrontations terminées ;
+- IA Coach, Diamond Score, risque et qualité des données ;
+- favoris et prévisions synchronisés entre PC et iPhone.
 
-## 2. Conserver le secret des cotes
+## Installation
 
-Dans Cloudflare Pages, gardez le secret :
+Copier tout le contenu du dossier dans le dépôt GitHub. Conserver :
 
-- `ODDS_API_KEY` = votre clé The Odds API
+- `functions/api/mlb.js`
+- `functions/api/odds.js`
+- `functions/api/history.js`
+- `functions/api/h2h.js`
+- `functions/api/sync.js`
 
-## 3. Créer la base D1 gratuite
+Bindings et secrets Cloudflare nécessaires :
 
-Dans Cloudflare : **Storage & Databases > D1 SQL Database > Create database**. Nommez-la par exemple `diamondpredict-db`.
+- secret `ODDS_API_KEY` ;
+- secret `DIAMOND_SYNC_KEY` ;
+- binding D1 nommé `DB` vers la base DiamondPredict.
 
-Ouvrez ensuite la console SQL de cette base et exécutez le contenu du fichier `schema.sql`.
+Exécuter `schema.sql` dans la console D1 si cela n’a pas déjà été fait, puis redéployer.
 
-## 4. Relier D1 au projet Pages
+## Vérifications
 
-Dans **Workers & Pages > DiamondPredict > Settings > Bindings**, ajoutez un binding D1 :
+- `/api/mlb`
+- `/api/odds`
+- `/api/history?days=90`
 
-- Variable name : `DB`
-- D1 database : `diamondpredict-db`
-
-Ajoutez-le à Production et à Preview si vous utilisez les URL de prévisualisation.
-
-## 5. Ajouter la clé personnelle de synchronisation
-
-Dans **Variables and Secrets**, créez un secret :
-
-- Nom : `DIAMOND_SYNC_KEY`
-- Valeur : une phrase secrète personnelle de votre choix
-
-Exemple de format : `Diamond-Florian-2026-une-suite-personnelle` (ne reprenez pas cet exemple mot pour mot). Utilisez la même valeur dans Production et Preview si nécessaire. Ne mettez jamais cette valeur dans GitHub.
-
-Redéployez le projet après avoir ajouté le binding et le secret.
-
-## 6. Connecter les appareils
-
-Dans DiamondPredict, ouvrez **Favoris > Synchronisation personnelle**. Saisissez exactement la valeur de `DIAMOND_SYNC_KEY`, puis cliquez sur **Connecter et synchroniser**. Répétez sur le PC et l’iPhone.
-
-Au premier raccordement, les favoris des deux appareils sont fusionnés. Pour les prévisions portant sur le même match, la plus récente est conservée.
-
-## Tests
-
-- `/api/mlb` : données MLB
-- `/api/odds` : cotes
-- `/api/sync` sans en-tête : doit répondre 401, ce qui est normal
-
-## Sécurité et fonctionnement
-
-- L’accès à `/api/sync` exige le secret `DIAMOND_SYNC_KEY`.
-- La clé saisie dans l’application reste dans le stockage local de l’appareil et voyage uniquement en HTTPS.
-- Les favoris et prévisions restent aussi dans `localStorage`, donc l’application continue de fonctionner si D1 est temporairement indisponible.
-- Cette solution est dimensionnée pour un usage personnel et reste largement dans les quotas gratuits de Cloudflare D1.
+L’API historique ne renvoie désormais que des matchs terminés disposant de deux scores numériques.
