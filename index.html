@@ -3,88 +3,135 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#07172f">
-  <meta name="description" content="DiamondPredict analyse les matchs MLB, les cotes et les principaux facteurs statistiques.">
+  <meta name="theme-color" content="#061226">
+  <meta name="description" content="DiamondPredict analyse les rencontres MLB, les cotes et les principaux facteurs statistiques.">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/icon.svg">
   <link rel="stylesheet" href="styles.css">
-  <title>DiamondPredict</title>
+  <title>DiamondPredict 0.4</title>
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <button class="brand" type="button" data-view="matches" aria-label="Retour aux matchs">
+      <button class="brand" type="button" data-view="dashboard" aria-label="Accueil DiamondPredict">
         <span class="brand-mark">⚾</span>
-        <span><small>MLB • VERSION 0.2</small><strong>DiamondPredict</strong></span>
+        <span><small>MLB • VERSION 0.4</small><strong>Diamond<span>Predict</span></strong></span>
       </button>
+      <nav class="desktop-nav" aria-label="Navigation principale">
+        <button class="nav-link active" data-view="dashboard" type="button">⌂ Tableau de bord</button>
+        <button class="nav-link" data-view="matches" type="button">⚾ Matchs</button>
+        <button class="nav-link" data-view="odds" type="button">↗ Cotes</button>
+        <button class="nav-link" data-view="analysis" type="button">✦ Analyses</button>
+        <button class="nav-link" data-view="history" type="button">◷ Historique</button>
+      </nav>
       <div class="top-actions">
-        <span class="demo-pill">Données démo</span>
+        <span class="demo-pill"><i></i>Données démo</span>
+        <button class="icon-button" id="notificationButton" type="button" aria-label="Afficher les alertes">🔔<b id="notificationCount">3</b></button>
         <button class="icon-button" id="themeToggle" type="button" aria-label="Changer le thème">☾</button>
       </div>
     </header>
 
     <main>
-      <section class="view active" id="view-matches">
-        <section class="hero">
+      <section class="view active" id="view-dashboard">
+        <section class="dashboard-hero">
           <div>
-            <p class="eyebrow">Prévisions du jour</p>
-            <h1>Les prochains matchs MLB, expliqués clairement</h1>
-            <p>Probabilités, cotes, lanceurs, value détectée et raisons du pronostic.</p>
+            <p class="eyebrow">Centre d’analyse MLB</p>
+            <h1>Les meilleures opportunités du jour, en un regard</h1>
+            <p>Probabilités, value, lanceurs, mouvements de cotes et niveau de confiance.</p>
           </div>
-          <div class="hero-score"><span id="heroCount">0</span><small>matchs analysés</small></div>
+          <div class="hero-metrics">
+            <div><strong id="todayCount">0</strong><span>matchs aujourd’hui</span></div>
+            <div><strong id="valueCount">0</strong><span>values détectées</span></div>
+            <div><strong id="bestProbability">0 %</strong><span>plus forte probabilité</span></div>
+          </div>
         </section>
 
+        <section class="dashboard-grid">
+          <article class="panel featured-panel">
+            <div class="panel-heading"><div><p class="eyebrow">Match vedette</p><h2 id="featuredTitle">Analyse principale</h2></div><button class="text-button" id="featuredOpen" type="button">Voir l’analyse →</button></div>
+            <div id="featuredMatch"></div>
+          </article>
+
+          <article class="panel alerts-panel">
+            <div class="panel-heading"><div><p class="eyebrow">Surveillance</p><h2>Alertes récentes</h2></div><button class="text-button" id="markAlertsRead" type="button">Tout lire</button></div>
+            <div id="alertsList" class="alerts-list"></div>
+          </article>
+        </section>
+
+        <section class="panel value-strip-panel">
+          <div class="panel-heading"><div><p class="eyebrow">Classement quotidien</p><h2>Top 5 Value</h2></div><button class="text-button" data-view="analysis" type="button">Toutes les analyses →</button></div>
+          <div id="topValueStrip" class="value-strip"></div>
+        </section>
+
+        <section class="dashboard-grid lower-grid">
+          <article class="panel">
+            <div class="panel-heading"><div><p class="eyebrow">Favoris nets</p><h2>Plus fortes probabilités</h2></div></div>
+            <div id="strongestList" class="ranking-list"></div>
+          </article>
+          <article class="panel">
+            <div class="panel-heading"><div><p class="eyebrow">Matchs serrés</p><h2>Rencontres les plus équilibrées</h2></div></div>
+            <div id="balancedList" class="ranking-list"></div>
+          </article>
+        </section>
+      </section>
+
+      <section class="view" id="view-matches">
+        <div class="page-heading"><div><p class="eyebrow">Calendrier</p><h1>Matchs à venir</h1><p>Consulte aujourd’hui, demain ou les prochains jours.</p></div></div>
         <section class="controls">
-          <label><span>Date</span><select id="dateFilter"><option value="all">Tous les matchs</option></select></label>
+          <label><span>Période</span><select id="dateFilter"><option value="all">Toute la semaine</option><option value="today">Aujourd’hui</option><option value="tomorrow">Demain</option><option value="3days">3 prochains jours</option></select></label>
           <label><span>Confiance</span><select id="confidenceFilter"><option value="all">Tous les niveaux</option><option value="forte">Forte</option><option value="moyenne">Moyenne</option><option value="faible">Faible</option></select></label>
-          <label class="search-field"><span>Équipe</span><input id="teamSearch" type="search" placeholder="Yankees, Dodgers…"></label>
+          <label><span>Équipe</span><input id="teamSearch" type="search" placeholder="Yankees, Dodgers…"></label>
+          <label><span>Tri</span><select id="sortFilter"><option value="time">Heure</option><option value="probability">Probabilité</option><option value="value">Value</option><option value="rating">Note Diamond</option></select></label>
         </section>
-
-        <div class="section-heading"><div><p class="eyebrow">Calendrier</p><h2>Matchs à venir</h2></div><span class="status-dot"><i></i>Simulation locale</span></div>
         <section id="matchesGrid" class="matches-grid" aria-live="polite"></section>
       </section>
 
       <section class="view" id="view-odds">
-        <div class="section-heading page-heading"><div><p class="eyebrow">Marché</p><h1>Comparateur de cotes</h1><p>Meilleure cote, consensus et évolution simulée.</p></div></div>
-        <section id="oddsList" class="stack"></section>
+        <div class="page-heading"><div><p class="eyebrow">Marché</p><h1>Comparateur de cotes</h1><p>Consensus, meilleure cote et mouvement simulé du marché.</p></div></div>
+        <section id="oddsList" class="odds-grid"></section>
       </section>
 
       <section class="view" id="view-analysis">
-        <div class="section-heading page-heading"><div><p class="eyebrow">Modèle</p><h1>Analyses recommandées</h1><p>Les rencontres présentant l’écart le plus intéressant entre marché et modèle.</p></div></div>
+        <div class="page-heading"><div><p class="eyebrow">Modèle</p><h1>Analyses recommandées</h1><p>Classement selon l’écart entre le marché et notre estimation.</p></div></div>
+        <section class="model-explainer panel">
+          <div><p class="eyebrow">Moteur V2</p><h2>Répartition actuelle du calcul</h2><p>Les pondérations restent simulées dans cette version et seront calibrées avec les résultats réels.</p></div>
+          <div id="modelWeights" class="weight-grid"></div>
+        </section>
         <section id="valueList" class="value-grid"></section>
       </section>
 
       <section class="view" id="view-favorites">
-        <div class="section-heading page-heading"><div><p class="eyebrow">Sélection</p><h1>Mes favoris</h1><p>Les matchs enregistrés restent mémorisés sur cet appareil.</p></div></div>
+        <div class="page-heading"><div><p class="eyebrow">Sélection</p><h1>Mes favoris</h1><p>Les matchs enregistrés restent mémorisés sur cet appareil.</p></div></div>
         <section id="favoritesGrid" class="matches-grid"></section>
       </section>
 
       <section class="view" id="view-history">
-        <div class="section-heading page-heading"><div><p class="eyebrow">Suivi du modèle</p><h1>Historique simulé</h1><p>Cette V0.2 montre la présentation qui accueillera ensuite les résultats réels.</p></div></div>
-        <section class="metrics-grid">
-          <article class="metric-card"><span>Prévisions correctes</span><strong>68 %</strong><small>17 sur 25 matchs</small></article>
-          <article class="metric-card"><span>Confiance forte</span><strong>75 %</strong><small>9 sur 12 matchs</small></article>
-          <article class="metric-card"><span>Brier Score</span><strong>0,198</strong><small>Plus bas = meilleur</small></article>
-          <article class="metric-card"><span>Value moyenne</span><strong>+4,2 pts</strong><small>Modèle contre marché</small></article>
+        <div class="page-heading"><div><p class="eyebrow">Contrôle qualité</p><h1>Historique du modèle</h1><p>Une démonstration de la manière dont DiamondPredict suivra ses performances.</p></div></div>
+        <section id="historyMetrics" class="metrics-grid"></section>
+        <section class="panel calibration-panel">
+          <div class="panel-heading"><div><p class="eyebrow">Calibration</p><h2>Prévisions contre résultats réels</h2></div></div>
+          <div id="calibrationChart" class="calibration-chart"></div>
         </section>
-        <section class="history-table-wrap"><table><thead><tr><th>Match</th><th>Prévision</th><th>Résultat</th><th>Statut</th></tr></thead><tbody id="historyRows"></tbody></table></section>
+        <section class="history-table-wrap"><table><thead><tr><th>Match</th><th>Prévision</th><th>Résultat</th><th>Confiance</th><th>Statut</th></tr></thead><tbody id="historyRows"></tbody></table></section>
       </section>
 
       <section class="view" id="view-settings">
-        <div class="section-heading page-heading"><div><p class="eyebrow">Préférences</p><h1>Réglages</h1></div></div>
-        <section class="settings-card">
-          <label class="switch-row"><span><strong>Afficher les cotes décimales</strong><small>Format français : 1,72</small></span><input type="checkbox" checked disabled></label>
+        <div class="page-heading"><div><p class="eyebrow">Préférences</p><h1>Réglages</h1></div></div>
+        <section class="settings-card panel">
           <label class="switch-row"><span><strong>Mettre en avant la value</strong><small>Signaler l’écart modèle / marché</small></span><input id="valueToggle" type="checkbox" checked></label>
           <label class="switch-row"><span><strong>Mode compact</strong><small>Réduire la hauteur des cartes</small></span><input id="compactToggle" type="checkbox"></label>
+          <label class="switch-row"><span><strong>Utiliser les logos distants</strong><small>Sinon l’application cherche dans assets/logos/</small></span><input id="remoteLogosToggle" type="checkbox" checked></label>
+          <label class="switch-row"><span><strong>Afficher les alertes simulées</strong><small>Mouvements de cotes et changement de lanceur</small></span><input id="alertsToggle" type="checkbox" checked></label>
           <button class="danger-button" id="clearFavorites" type="button">Effacer les favoris</button>
         </section>
       </section>
     </main>
 
-    <nav class="bottom-nav" aria-label="Navigation principale">
-      <button class="nav-item active" data-view="matches" type="button"><span>⚾</span>Matchs</button>
-      <button class="nav-item" data-view="odds" type="button"><span>€</span>Cotes</button>
+    <nav class="bottom-nav" aria-label="Navigation mobile">
+      <button class="nav-item active" data-view="dashboard" type="button"><span>⌂</span>Accueil</button>
+      <button class="nav-item" data-view="matches" type="button"><span>⚾</span>Matchs</button>
+      <button class="nav-item" data-view="odds" type="button"><span>↗</span>Cotes</button>
       <button class="nav-item" data-view="analysis" type="button"><span>✦</span>Analyses</button>
       <button class="nav-item" data-view="favorites" type="button"><span>★</span>Favoris</button>
       <button class="nav-item" data-view="history" type="button"><span>◷</span>Historique</button>
@@ -93,9 +140,15 @@
   </div>
 
   <dialog id="analysisDialog" class="analysis-dialog">
-    <div class="dialog-header"><div><p class="eyebrow">Analyse détaillée</p><h2 id="dialogTitle">Match</h2></div><button class="icon-button" id="closeDialog" type="button" aria-label="Fermer">✕</button></div>
+    <div class="dialog-header"><div><p class="eyebrow">Analyse complète</p><h2 id="dialogTitle">Match</h2></div><button class="icon-button" id="closeDialog" type="button" aria-label="Fermer">✕</button></div>
     <div id="dialogContent"></div>
   </dialog>
+
+  <aside id="notificationPanel" class="notification-panel" aria-hidden="true">
+    <div class="dialog-header"><div><p class="eyebrow">Centre d’alertes</p><h2>Notifications</h2></div><button class="icon-button" id="closeNotifications" type="button">✕</button></div>
+    <div id="notificationPanelList" class="alerts-list"></div>
+  </aside>
+
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="app.js" defer></script>
 </body>

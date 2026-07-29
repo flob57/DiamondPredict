@@ -1,1 +1,12 @@
-{"name":"DiamondPredict","short_name":"DiamondPredict","description":"Probabilités et analyses MLB","start_url":"./","display":"standalone","background_color":"#061226","theme_color":"#07172f","lang":"fr","icons":[{"src":"assets/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
+{
+  "name": "DiamondPredict",
+  "short_name": "DiamondPredict",
+  "description": "Tableau de bord personnel d’analyse MLB.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#061225",
+  "theme_color": "#061225",
+  "icons": [
+    {"src":"assets/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}
