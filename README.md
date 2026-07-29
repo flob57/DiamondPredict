@@ -1,35 +1,30 @@
-# DiamondPredict V2.0
+# DiamondPredict V2.1
 
-Version entièrement modulaire et gratuite.
+Version gratuite avec calendrier MLB, statistiques avancées, cotes The Odds API, favoris, confrontations directes et historique des prévisions.
 
-## Déploiement Cloudflare Pages
+## Installation
 
-Copier **tout le contenu** de ce dossier à la racine du dépôt GitHub. L’arborescence doit rester exactement ainsi :
+Copiez tout le contenu de ce dossier à la racine du dépôt GitHub. Les dossiers `assets/` et `functions/` doivent rester à la racine.
 
-```
-index.html
-assets/
-  css/app.css
-  js/app.js
-  js/api.js
-  js/model.js
-  js/ui.js
-  js/utils.js
-  js/config.js
-functions/
-  api/mlb.js
-```
+## Secret Cloudflare obligatoire pour les cotes
 
-Après déploiement, vérifier d’abord :
+Dans **Cloudflare > Workers & Pages > DiamondPredict > Settings > Variables and Secrets**, ajoutez un secret chiffré :
 
-`https://votre-site.pages.dev/api/mlb`
+- Nom : `ODDS_API_KEY`
+- Valeur : votre clé The Odds API
 
-Puis ouvrir la page principale. Aucun abonnement ni clé API n’est nécessaire.
+Ajoutez-le dans **Production** et, si vous testez des URL de prévisualisation, également dans **Preview**. Redéployez après l'ajout.
 
-## Architecture
+## Tests
 
-- `api.js` : appels réseau
-- `model.js` : calcul des probabilités
-- `ui.js` : composants HTML
-- `app.js` : navigation et orchestration
-- `functions/api/mlb.js` : passerelle Cloudflare vers les données MLB
+- `/api/mlb` : calendrier et statistiques MLB
+- `/api/odds` : cotes et quota restant
+- `/api/history?days=30` : résultats terminés
+- `/api/h2h?away=143&home=146` : confrontations entre deux équipes
+
+## Fonctionnement
+
+- Les cotes utilisent le marché `h2h` et la région `eu`.
+- La réponse des cotes est mise en cache environ 15 minutes afin d'économiser les crédits.
+- Les favoris et prévisions sont enregistrés dans le navigateur (`localStorage`). Ils ne sont donc pas encore synchronisés entre PC et iPhone.
+- L'historique compare uniquement les résultats aux prévisions qui ont été enregistrées avant le match sur cet appareil.
