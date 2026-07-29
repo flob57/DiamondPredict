@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#08172f">
-  <meta name="description" content="DiamondPredict estime les probabilités des matchs MLB à partir de plusieurs indicateurs.">
+  <meta name="theme-color" content="#07172f">
+  <meta name="description" content="DiamondPredict analyse les matchs MLB, les cotes et les principaux facteurs statistiques.">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/icon.svg">
@@ -14,105 +14,89 @@
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <div class="brand">
-        <div class="brand-mark" aria-hidden="true">⚾</div>
-        <div>
-          <p class="eyebrow">MLB • Version 0.1</p>
-          <h1>DiamondPredict</h1>
-        </div>
+      <button class="brand" type="button" data-view="matches" aria-label="Retour aux matchs">
+        <span class="brand-mark">⚾</span>
+        <span><small>MLB • VERSION 0.2</small><strong>DiamondPredict</strong></span>
+      </button>
+      <div class="top-actions">
+        <span class="demo-pill">Données démo</span>
+        <button class="icon-button" id="themeToggle" type="button" aria-label="Changer le thème">☾</button>
       </div>
-      <button class="icon-button" id="themeToggle" type="button" aria-label="Changer le thème">☾</button>
     </header>
 
     <main>
-      <section class="hero">
-        <div>
-          <p class="hero-kicker">Prévisions du jour</p>
-          <h2>Analyse les prochains matchs MLB</h2>
-          <p>Cette première version utilise des données de démonstration pour valider l’interface et le calcul.</p>
-        </div>
-        <div class="hero-score">
-          <span id="heroCount">0</span>
-          <small>matchs analysés</small>
-        </div>
-      </section>
-
-      <section class="controls" aria-label="Filtres des matchs">
-        <label>
-          <span>Date</span>
-          <select id="dateFilter">
-            <option value="all">Tous les matchs</option>
-          </select>
-        </label>
-        <label>
-          <span>Confiance</span>
-          <select id="confidenceFilter">
-            <option value="all">Tous les niveaux</option>
-            <option value="forte">Forte</option>
-            <option value="moyenne">Moyenne</option>
-            <option value="faible">Faible</option>
-          </select>
-        </label>
-      </section>
-
-      <section class="section-heading">
-        <div>
-          <p class="eyebrow">Calendrier</p>
-          <h2>Matchs à venir</h2>
-        </div>
-        <span class="status-dot"><i></i>Données démo</span>
-      </section>
-
-      <section id="matchesGrid" class="matches-grid" aria-live="polite"></section>
-
-      <section class="performance-panel">
-        <div class="section-heading compact">
+      <section class="view active" id="view-matches">
+        <section class="hero">
           <div>
-            <p class="eyebrow">Suivi du modèle</p>
-            <h2>Performances simulées</h2>
+            <p class="eyebrow">Prévisions du jour</p>
+            <h1>Les prochains matchs MLB, expliqués clairement</h1>
+            <p>Probabilités, cotes, lanceurs, value détectée et raisons du pronostic.</p>
           </div>
-        </div>
-        <div class="metrics-grid">
-          <article class="metric-card">
-            <span>Prévisions correctes</span>
-            <strong>68 %</strong>
-            <small>17 sur 25 matchs</small>
-          </article>
-          <article class="metric-card">
-            <span>Confiance forte</span>
-            <strong>75 %</strong>
-            <small>9 sur 12 matchs</small>
-          </article>
-          <article class="metric-card">
-            <span>Écart moyen marché</span>
-            <strong>+4,2 pts</strong>
-            <small>Différence modèle / cotes</small>
-          </article>
-        </div>
-        <p class="disclaimer">Ces chiffres sont fictifs dans cette version. Ils seront remplacés par l’historique réel du modèle.</p>
+          <div class="hero-score"><span id="heroCount">0</span><small>matchs analysés</small></div>
+        </section>
+
+        <section class="controls">
+          <label><span>Date</span><select id="dateFilter"><option value="all">Tous les matchs</option></select></label>
+          <label><span>Confiance</span><select id="confidenceFilter"><option value="all">Tous les niveaux</option><option value="forte">Forte</option><option value="moyenne">Moyenne</option><option value="faible">Faible</option></select></label>
+          <label class="search-field"><span>Équipe</span><input id="teamSearch" type="search" placeholder="Yankees, Dodgers…"></label>
+        </section>
+
+        <div class="section-heading"><div><p class="eyebrow">Calendrier</p><h2>Matchs à venir</h2></div><span class="status-dot"><i></i>Simulation locale</span></div>
+        <section id="matchesGrid" class="matches-grid" aria-live="polite"></section>
+      </section>
+
+      <section class="view" id="view-odds">
+        <div class="section-heading page-heading"><div><p class="eyebrow">Marché</p><h1>Comparateur de cotes</h1><p>Meilleure cote, consensus et évolution simulée.</p></div></div>
+        <section id="oddsList" class="stack"></section>
+      </section>
+
+      <section class="view" id="view-analysis">
+        <div class="section-heading page-heading"><div><p class="eyebrow">Modèle</p><h1>Analyses recommandées</h1><p>Les rencontres présentant l’écart le plus intéressant entre marché et modèle.</p></div></div>
+        <section id="valueList" class="value-grid"></section>
+      </section>
+
+      <section class="view" id="view-favorites">
+        <div class="section-heading page-heading"><div><p class="eyebrow">Sélection</p><h1>Mes favoris</h1><p>Les matchs enregistrés restent mémorisés sur cet appareil.</p></div></div>
+        <section id="favoritesGrid" class="matches-grid"></section>
+      </section>
+
+      <section class="view" id="view-history">
+        <div class="section-heading page-heading"><div><p class="eyebrow">Suivi du modèle</p><h1>Historique simulé</h1><p>Cette V0.2 montre la présentation qui accueillera ensuite les résultats réels.</p></div></div>
+        <section class="metrics-grid">
+          <article class="metric-card"><span>Prévisions correctes</span><strong>68 %</strong><small>17 sur 25 matchs</small></article>
+          <article class="metric-card"><span>Confiance forte</span><strong>75 %</strong><small>9 sur 12 matchs</small></article>
+          <article class="metric-card"><span>Brier Score</span><strong>0,198</strong><small>Plus bas = meilleur</small></article>
+          <article class="metric-card"><span>Value moyenne</span><strong>+4,2 pts</strong><small>Modèle contre marché</small></article>
+        </section>
+        <section class="history-table-wrap"><table><thead><tr><th>Match</th><th>Prévision</th><th>Résultat</th><th>Statut</th></tr></thead><tbody id="historyRows"></tbody></table></section>
+      </section>
+
+      <section class="view" id="view-settings">
+        <div class="section-heading page-heading"><div><p class="eyebrow">Préférences</p><h1>Réglages</h1></div></div>
+        <section class="settings-card">
+          <label class="switch-row"><span><strong>Afficher les cotes décimales</strong><small>Format français : 1,72</small></span><input type="checkbox" checked disabled></label>
+          <label class="switch-row"><span><strong>Mettre en avant la value</strong><small>Signaler l’écart modèle / marché</small></span><input id="valueToggle" type="checkbox" checked></label>
+          <label class="switch-row"><span><strong>Mode compact</strong><small>Réduire la hauteur des cartes</small></span><input id="compactToggle" type="checkbox"></label>
+          <button class="danger-button" id="clearFavorites" type="button">Effacer les favoris</button>
+        </section>
       </section>
     </main>
 
     <nav class="bottom-nav" aria-label="Navigation principale">
-      <button class="nav-item active" type="button" data-view="matches"><span>⚾</span>Matchs</button>
-      <button class="nav-item" type="button" data-view="history"><span>◷</span>Historique</button>
-      <button class="nav-item" type="button" data-view="settings"><span>⚙</span>Réglages</button>
+      <button class="nav-item active" data-view="matches" type="button"><span>⚾</span>Matchs</button>
+      <button class="nav-item" data-view="odds" type="button"><span>€</span>Cotes</button>
+      <button class="nav-item" data-view="analysis" type="button"><span>✦</span>Analyses</button>
+      <button class="nav-item" data-view="favorites" type="button"><span>★</span>Favoris</button>
+      <button class="nav-item" data-view="history" type="button"><span>◷</span>Historique</button>
+      <button class="nav-item" data-view="settings" type="button"><span>⚙</span>Réglages</button>
     </nav>
   </div>
 
   <dialog id="analysisDialog" class="analysis-dialog">
-    <div class="dialog-header">
-      <div>
-        <p class="eyebrow">Analyse détaillée</p>
-        <h2 id="dialogTitle">Match</h2>
-      </div>
-      <button class="icon-button" id="closeDialog" type="button" aria-label="Fermer">✕</button>
-    </div>
+    <div class="dialog-header"><div><p class="eyebrow">Analyse détaillée</p><h2 id="dialogTitle">Match</h2></div><button class="icon-button" id="closeDialog" type="button" aria-label="Fermer">✕</button></div>
     <div id="dialogContent"></div>
   </dialog>
-
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-
   <script src="app.js" defer></script>
 </body>
 </html>

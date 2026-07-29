@@ -1,36 +1,28 @@
-# DiamondPredict V0.1
+# DiamondPredict V0.2
 
-Première version de démonstration d'une application de probabilités MLB.
+Application web progressive de démonstration consacrée aux probabilités MLB.
 
-## Fonctions incluses
+## Nouveautés
+- barre de victoire plus visuelle ;
+- notes Diamond sur 10 ;
+- comparateur de cotes ;
+- meilleure cote mise en évidence ;
+- évolution simulée des cotes ;
+- détection de value ;
+- explication des facteurs du modèle ;
+- Pitcher Center avec ERA, WHIP et FIP ;
+- onglets Matchs, Cotes, Analyses, Favoris, Historique et Réglages ;
+- favoris persistants dans le navigateur ;
+- mode compact et thème clair/sombre ;
+- installation PWA et fonctionnement hors ligne.
 
-- Liste responsive des matchs à venir
-- Filtres par date et niveau de confiance
-- Probabilités de victoire
-- Cotes et statistiques fictives
-- Analyse détaillée de chaque match
-- Favoris temporaires
-- Mode clair / sombre
-- PWA installable sur iPhone
-- Fonctionnement hors ligne après une première visite
-
-## Déploiement GitHub + Cloudflare Pages
-
-1. Créez un nouveau dépôt GitHub, par exemple `DiamondPredict`.
-2. Ajoutez tous les fichiers de ce dossier à la racine du dépôt.
-3. Dans Cloudflare Pages, choisissez **Créer un projet** puis connectez le dépôt GitHub.
-4. Paramètres de construction :
-   - Framework : `None`
-   - Commande de build : laisser vide
-   - Répertoire de sortie : `/`
-5. Lancez le déploiement.
-
-## Installation sur iPhone
-
-1. Ouvrir le site dans Safari.
-2. Toucher le bouton de partage.
-3. Choisir **Sur l'écran d'accueil**.
+## Déploiement Cloudflare Pages
+1. Créer un dépôt GitHub vide.
+2. Envoyer tous les fichiers contenus dans ce dossier à la racine du dépôt.
+3. Dans Cloudflare Pages, connecter le dépôt.
+4. Framework preset : `None`.
+5. Build command : laisser vide.
+6. Build output directory : `/`.
 
 ## Important
-
-Les matchs, cotes et statistiques de cette version sont fictifs. La prochaine version connectera les données MLB réelles puis une API de cotes.
+Toutes les rencontres, statistiques, cotes et performances sont fictives dans cette version. Elles servent uniquement à valider l’interface. La prochaine étape sera la connexion à des API réelles via un Cloudflare Worker afin de ne jamais exposer les clés API dans le navigateur.
