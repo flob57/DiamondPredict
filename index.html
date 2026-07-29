@@ -9,20 +9,21 @@
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/icon.svg">
   <link rel="stylesheet" href="styles.css">
-  <title>DiamondPredict 1.0</title>
+  <title>DiamondPredict 1.1.1</title>
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
       <button class="brand" type="button" data-view="dashboard" aria-label="Accueil DiamondPredict">
         <span class="brand-mark">⚾</span>
-        <span><small>MLB • VERSION 1.1</small><strong>Diamond<span>Predict</span></strong></span>
+        <span><small>MLB • VERSION 1.1.1</small><strong>Diamond<span>Predict</span></strong></span>
       </button>
       <nav class="desktop-nav" aria-label="Navigation principale">
         <button class="nav-link active" data-view="dashboard" type="button">⌂ Tableau de bord</button>
         <button class="nav-link" data-view="matches" type="button">⚾ Matchs</button>
         <button class="nav-link" data-view="odds" type="button">↗ Cotes</button>
         <button class="nav-link" data-view="analysis" type="button">✦ Analyses</button>
+        <button class="nav-link" data-view="lab" type="button">🧠 Laboratoire</button>
         <button class="nav-link" data-view="history" type="button">◷ Historique</button>
       </nav>
       <div class="top-actions">
@@ -116,6 +117,17 @@
         <section class="history-table-wrap"><table><thead><tr><th>Match</th><th>Prévision</th><th>Résultat</th><th>Confiance</th><th>Statut</th></tr></thead><tbody id="historyRows"></tbody></table></section>
       </section>
 
+
+      <section class="view" id="view-lab">
+        <div class="page-heading"><div><p class="eyebrow">Coulisses du modèle</p><h1>Laboratoire DiamondPredict</h1><p>Consulte les pondérations, les influences et les simulations utilisées pour les prévisions.</p></div></div>
+        <section id="labSummary" class="metrics-grid"></section>
+        <section class="dashboard-grid">
+          <article class="panel"><div class="panel-heading"><div><p class="eyebrow">Moteur</p><h2>Pondérations actuelles</h2></div></div><div id="labWeights" class="lab-bars"></div></article>
+          <article class="panel"><div class="panel-heading"><div><p class="eyebrow">Match de référence</p><h2>Influence des variables</h2></div></div><div id="labInfluence" class="lab-bars"></div></article>
+        </section>
+        <section class="panel simulation-panel"><div class="panel-heading"><div><p class="eyebrow">Monte Carlo</p><h2>Simulation de 10 000 matchs</h2></div></div><div id="labSimulation"></div></section>
+      </section>
+
       <section class="view" id="view-settings">
         <div class="page-heading"><div><p class="eyebrow">Préférences</p><h1>Réglages</h1></div></div>
         <section class="settings-card panel">
@@ -133,6 +145,7 @@
       <button class="nav-item" data-view="matches" type="button"><span>⚾</span>Matchs</button>
       <button class="nav-item" data-view="odds" type="button"><span>↗</span>Cotes</button>
       <button class="nav-item" data-view="analysis" type="button"><span>✦</span>Analyses</button>
+      <button class="nav-item" data-view="lab" type="button"><span>🧠</span>Laboratoire</button>
       <button class="nav-item" data-view="favorites" type="button"><span>★</span>Favoris</button>
       <button class="nav-item" data-view="history" type="button"><span>◷</span>Historique</button>
       <button class="nav-item" data-view="settings" type="button"><span>⚙</span>Réglages</button>
