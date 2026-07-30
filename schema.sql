@@ -11,3 +11,10 @@ CREATE TABLE IF NOT EXISTS user_bets_state (
   bets_json TEXT NOT NULL DEFAULT '[]',
   updated_at TEXT NOT NULL
 );
+
+
+CREATE TABLE IF NOT EXISTS user_analyses_state (
+  id TEXT PRIMARY KEY,
+  analyses_json TEXT NOT NULL DEFAULT '{}',
+  updated_at TEXT NOT NULL
+);

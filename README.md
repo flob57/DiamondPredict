@@ -1,8 +1,8 @@
-# DiamondPredict V3.3
+# DiamondPredict V3.4
 
 Version gratuite et modulaire avec calendrier MLB, statistiques avancées, cotes The Odds API, favoris et prévisions synchronisés avec Cloudflare D1.
 
-## Nouveautés V3.3
+## Nouveautés V3.4
 
 - nouvel onglet **Mes paris** avec match, sélection, bookmaker, cote et mise ;
 - calcul automatique du gain potentiel, du bénéfice net, du ROI et du taux de réussite ;
@@ -48,7 +48,7 @@ Exécuter `schema.sql` dans la console D1 si cela n’a pas déjà été fait, p
 L’API historique ne renvoie désormais que des matchs terminés disposant de deux scores numériques.
 
 
-## V3.3 — Synchronisation et règlement des paris
+## V3.4 — Synchronisation et règlement des paris
 
 - Les paris sont inclus dans la synchronisation Cloudflare D1.
 - Les résultats sont détectés automatiquement depuis les matchs MLB terminés (jusqu’à 180 jours).
@@ -57,7 +57,7 @@ L’API historique ne renvoie désormais que des matchs terminés disposant de d
 - Aucun nouveau binding n’est nécessaire : la Function crée automatiquement la table `user_bets_state`. Le fichier `schema.sql` peut aussi être exécuté manuellement.
 
 
-## V3.3 — Laboratoire d’apprentissage
+## V3.4 — Laboratoire d’apprentissage
 
 - bilan automatique des prévisions terminées ;
 - performances par tranche de probabilité, Diamond Score et Value ;
@@ -67,3 +67,12 @@ L’API historique ne renvoie désormais que des matchs terminés disposant de d
 - enregistrement enrichi des futures prévisions (qualité, marché, facteurs et lanceurs).
 
 Les diagnostics sont statistiques : ils signalent des biais possibles sans prétendre connaître à eux seuls la cause sportive exacte d’une défaite.
+
+
+## V3.4 — Mon carnet d’analyse
+
+- Notes personnelles sur 5 pour les confrontations, les lanceurs, les bookmakers et le pronostic.
+- Calcul automatique de « Mon indice de confiance ».
+- Commentaire personnel libre.
+- Affichage de l’indice sur les cartes des matchs favoris et dans l’analyse détaillée.
+- Synchronisation Cloudflare D1 automatique, sans nouveau binding ni migration manuelle.
